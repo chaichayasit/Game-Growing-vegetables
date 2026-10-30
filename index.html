@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ฟาร์มผักจิ๋ว – Growing Vegetables</title>
+<meta name="description" content="เกมปลูกผักสไตล์ Simple Shape เล่นได้บนเบราว์เซอร์ ไม่ต้องติดตั้ง">
+<meta name="theme-color" content="#9fdcff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='58' r='36' fill='%23f44336'/%3E%3Cpolygon points='50,14 60,34 40,34' fill='%2343a047'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#3b2f2f; --sky1:#9fdcff; --sky2:#e6f7ff; --soil:#8d5b2e; --soil-dark:#5e3b1c;
+  --card:#fffdf5; --accent:#43a047; --gold:#ffc83d; --blue:#4fc3f7;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:"Prompt","Noto Sans Thai","Sarabun",system-ui,sans-serif;
+  color:var(--ink);
+  background:linear-gradient(var(--sky1),var(--sky2) 60%,#d8f3c4);
+  min-height:100vh;display:flex;justify-content:center;
+  user-select:none;-webkit-user-select:none;
+}
+button{font-family:inherit;color:inherit}
+.app{width:100%;max-width:520px;padding:12px 12px 40px}
+
+/* HUD */
+.hud{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:18px;padding:8px 12px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;flex:1;min-width:0;font-size:15px;line-height:1.1}
+.logo svg{width:30px;height:30px;flex:none}
+.stat{display:flex;align-items:center;gap:6px;font-weight:700}
+.coinicon{width:20px;height:20px;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 3px #e0a800,inset 0 0 0 6px var(--gold);flex:none}
+.lvl{flex-direction:column;align-items:stretch;gap:3px;font-size:13px;min-width:62px}
+.xp{height:6px;border-radius:3px;background:#e8dcc8;overflow:hidden}
+.xp i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+
+/* Scene */
+.scene{position:relative;margin-top:12px;border-radius:26px;overflow:hidden;background:linear-gradient(#8fd3ff,#d4f1ff);padding:84px 14px 22px;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.sun{position:absolute;top:16px;right:22px;width:46px;height:46px;border-radius:50%;background:#ffd93b;box-shadow:0 0 0 8px rgba(255,217,59,.35),0 0 0 18px rgba(255,217,59,.2)}
+.cloud{position:absolute;height:18px;width:64px;border-radius:12px;background:#fff;opacity:.95}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:30px;height:30px;left:10px;top:-14px}
+.cloud::after{width:24px;height:24px;left:34px;top:-9px}
+.c1{top:30px;left:-90px;animation:drift 40s linear infinite}
+.c2{top:62px;left:-90px;animation:drift 56s linear infinite -24s;scale:.7}
+@keyframes drift{to{translate:700px 0}}
+.hill{position:absolute;border-radius:50%}
+.h1{width:380px;height:380px;left:-90px;bottom:-250px;background:#8bd45f}
+.h2{width:420px;height:420px;right:-140px;bottom:-290px;background:#6fc24a}
+.field{position:relative;z-index:1;background:#c98a4b;border-radius:22px;padding:12px;box-shadow:inset 0 0 0 4px #a96f35,0 4px 0 #8a5a28}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+
+/* Plot */
+.plot{position:relative;aspect-ratio:1;border:0;padding:0;border-radius:16px;overflow:hidden;cursor:pointer;
+  background:repeating-linear-gradient(0deg,var(--soil) 0 12px,#835227 12px 14px);
+  transition:transform .08s;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+.plot:active{transform:scale(.96)}
+.plot.wet{background:repeating-linear-gradient(0deg,var(--soil-dark) 0 12px,#4d2f15 12px 14px)}
+.plot.locked{background:repeating-linear-gradient(0deg,#bdbdbd 0 12px,#b0b0b0 12px 14px)}
+.plantbox{position:absolute;inset:0}
+.plantbox svg{width:100%;height:100%;display:block}
+.plot.ready .plantbox{animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px) scale(1.04)}}
+.plot.empty::after{content:"";position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;translate:-50% -50%;border:3px dashed rgba(255,255,255,.35);border-radius:50%}
+.lockbox{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:#444}
+.plot.locked .lockbox{display:flex}
+.padlock{width:24px;height:18px;background:#555;border-radius:4px;position:relative;margin-top:10px}
+.padlock::before{content:"";position:absolute;left:4px;top:-12px;width:12px;height:14px;border:4px solid #555;border-bottom:0;border-radius:10px 10px 0 0}
+.bars{display:none;position:absolute;left:8px;right:8px;bottom:6px;flex-direction:column;gap:3px}
+.plot.growing .bars{display:flex}
+.bars i{display:block;height:5px;border-radius:3px;background:rgba(0,0,0,.3);overflow:hidden}
+.bars b{display:block;height:100%;width:0}
+.pb b{background:#8bd45f}
+.wb b{background:var(--blue)}
+.badge{position:absolute;top:6px;right:6px;width:18px;height:18px;display:none}
+.plot.ready .badge{display:block;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 4px #e0a800;animation:pulse .8s infinite alternate}
+.plot.thirsty .badge{display:block;width:14px;height:18px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;background:var(--blue);animation:pulse .8s infinite alternate}
+@keyframes pulse{to{transform:scale(1.25)}}
+.float{position:absolute;left:50%;top:35%;translate:-50% 0;font-weight:800;font-size:18px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.45);pointer-events:none;animation:floatup .9s ease-out forwards;z-index:3;white-space:nowrap}
+@keyframes floatup{to{translate:-50% -44px;opacity:0}}
+.drop{position:absolute;top:6px;width:7px;height:10px;border-radius:50%/60% 60% 40% 40%;background:var(--blue);pointer-events:none;animation:fall .7s ease-in forwards;z-index:3}
+@keyframes fall{to{translate:0 76px;opacity:.1}}
+
+/* Panels */
+.panel{background:var(--card);border-radius:18px;padding:12px;margin-top:12px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.panel h2{font-size:14px;margin:0 0 8px}
+.seeds{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+@media(max-width:440px){.seeds{grid-template-columns:repeat(3,1fr)}}
+.seed{border:3px solid transparent;background:#f6efdc;border-radius:14px;padding:6px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;line-height:1.3}
+.seed svg{width:44px;height:44px}
+.seed b{font-size:12px}
+.seed.active{border-color:var(--accent);background:#e8f5e0}
+.seed.locked{opacity:.5;filter:grayscale(.8);cursor:not-allowed}
+.seed.poor .cost{color:#d32f2f}
+.actions,.shop{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions{margin-top:12px}
+.btn{border:0;border-radius:14px;padding:11px 8px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.18);text-align:center}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn small{display:block;font-weight:500;font-size:11px;opacity:.85}
+.btn.blue{background:var(--blue);color:#063b52}
+.btn.green{background:#8bd45f;color:#1c3b0c}
+.btn.sand{background:#f3dfa8;color:#4a3410}
+.btn:disabled,.btn.off{opacity:.5;cursor:not-allowed}
+.iconbtn{border:0;background:#f1e8d4;border-radius:12px;padding:6px 10px;font-size:12px;cursor:pointer}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;font-size:12px;opacity:.85}
+.foot p{margin:0}
+#toast{position:fixed;left:50%;bottom:24px;translate:-50% 20px;background:#3b2f2f;color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:10}
+#toast.show{opacity:1;translate:-50% 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="60" r="34" fill="#f44336"/><polygon points="50,12 62,36 38,36" fill="#43a047"/></svg>
+      <span>ฟาร์มผักจิ๋ว</span>
+    </div>
+    <div class="stat"><span class="coinicon"></span><span id="coins">0</span></div>
+    <div class="stat lvl"><span>Lv <b id="lvl">1</b></span><div class="xp"><i id="xpbar"></i></div></div>
+    <button class="iconbtn" id="mute" type="button">เสียง: เปิด</button>
+  </header>
+
+  <main class="scene">
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="hill h1"></div>
+    <div class="hill h2"></div>
+    <div class="field"><div id="grid" class="grid"></div></div>
+  </main>
+
+  <section class="panel">
+    <h2>เลือกเมล็ดพันธุ์</h2>
+    <div id="seeds" class="seeds"></div>
+  </section>
+
+  <section class="actions">
+    <button class="btn blue" id="waterAll" type="button">รดน้ำทั้งหมด<small>แปลงละ 1 เหรียญ</small></button>
+    <button class="btn green" id="harvestAll" type="button">เก็บเกี่ยวทั้งหมด<small>เก็บทุกแปลงที่สุกแล้ว</small></button>
+  </section>
+
+  <section class="panel">
+    <h2>ร้านอัปเกรด</h2>
+    <div class="shop">
+      <button class="btn sand" id="upWater" type="button"></button>
+      <button class="btn sand" id="upGrow" type="button"></button>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>แตะแปลงว่าง = ปลูก • แตะผักที่กำลังโต = รดน้ำ • แตะผักสุก = เก็บเกี่ยว</p>
+    <button class="iconbtn" id="reset" type="button">เริ่มใหม่</button>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- ข้อมูลพืช ---------- */
+const KEY = 'simpleVeg.v1';
+const C = {
+  carrot:   { name:'แครอท',       cost:5,  time:20,  sell:12,  lvl:1 },
+  tomato:   { name:'มะเขือเทศ',   cost:10, time:35,  sell:26,  lvl:2 },
+  cabbage:  { name:'กะหล่ำปลี',   cost:20, time:55,  sell:55,  lvl:3 },
+  eggplant: { name:'มะเขือม่วง',  cost:40, time:80,  sell:120, lvl:4 },
+  pumpkin:  { name:'ฟักทอง',      cost:80, time:120, sell:250, lvl:5 }
+};
+const ORDER = Object.keys(C);
+const WATER_BASE = 20, MAX_UP = 5, G = 78;
+const $ = s => document.querySelector(s);
+
+/* ---------- วาดผักด้วยรูปทรงเรียบง่าย (SVG) ---------- */
+function foliage(k){
+  switch(k){
+    case 'carrot':
+      return '<polygon points="45,78 35,44 52,72" fill="#43a047"/><polygon points="50,78 49,36 56,74" fill="#66bb6a"/><polygon points="55,78 66,46 48,72" fill="#388e3c"/>';
+    case 'tomato':
+      return '<rect x="48" y="42" width="4" height="36" rx="2" fill="#388e3c"/><ellipse cx="37" cy="56" rx="13" ry="7" transform="rotate(-25 37 56)" fill="#43a047"/><ellipse cx="63" cy="52" rx="13" ry="7" transform="rotate(25 63 52)" fill="#66bb6a"/><ellipse cx="50" cy="40" rx="9" ry="6" fill="#43a047"/>';
+    case 'cabbage':
+      return '<ellipse cx="34" cy="68" rx="14" ry="10" transform="rotate(-20 34 68)" fill="#7cb342"/><ellipse cx="66" cy="68" rx="14" ry="10" transform="rotate(20 66 68)" fill="#8bc34a"/><ellipse cx="50" cy="62" rx="12" ry="14" fill="#9ccc65"/>';
+    case 'eggplant':
+      return '<rect x="47" y="40" width="6" height="38" rx="3" fill="#2e7d32"/><ellipse cx="35" cy="58" rx="15" ry="8" transform="rotate(-30 35 58)" fill="#388e3c"/><ellipse cx="65" cy="54" rx="15" ry="8" transform="rotate(30 65 54)" fill="#2e7d32"/><ellipse cx="50" cy="38" rx="10" ry="7" fill="#43a047"/>';
+    case 'pumpkin':
+      return '<path d="M20 76 Q34 56 50 64 Q66 52 82 74" stroke="#558b2f" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="66" r="12" fill="#689f38"/><circle cx="70" cy="62" r="12" fill="#7cb342"/><circle cx="50" cy="52" r="11" fill="#689f38"/>';
+  }
+  return '';
+}
+function fruit(k){
+  switch(k){
+    case 'carrot':
+      return '<polygon points="37,72 63,72 50,98" fill="#ff9800"/><rect x="41" y="78" width="10" height="3" rx="1.5" fill="#ffb74d"/><rect x="47" y="85" width="7" height="3" rx="1.5" fill="#ffb74d"/>';
+    case 'tomato':
+      return '<circle cx="36" cy="68" r="12" fill="#f44336"/><circle cx="64" cy="66" r="12" fill="#e53935"/><circle cx="50" cy="54" r="11" fill="#ef5350"/>'
+        + '<polygon points="36,58 40,63 32,63" fill="#2e7d32"/><polygon points="64,56 68,61 60,61" fill="#2e7d32"/><polygon points="50,44 54,49 46,49" fill="#2e7d32"/>'
+        + '<circle cx="31" cy="64" r="3" fill="#fff" opacity=".5"/><circle cx="59" cy="62" r="3" fill="#fff" opacity=".5"/>';
+    case 'cabbage':
+      return '<circle cx="50" cy="64" r="24" fill="#9ccc65"/><circle cx="50" cy="64" r="17" fill="#aed581"/><circle cx="50" cy="64" r="9" fill="#c5e1a5"/><path d="M50 40 L50 88" stroke="#7cb342" stroke-width="2" opacity=".5"/>';
+    case 'eggplant':
+      return '<ellipse cx="50" cy="68" rx="14" ry="22" transform="rotate(12 50 68)" fill="#7b1fa2"/><ellipse cx="45" cy="62" rx="3.5" ry="9" transform="rotate(12 45 62)" fill="#ba68c8" opacity=".6"/><path d="M38 50 Q52 38 64 52 Q52 58 38 50Z" fill="#388e3c"/>';
+    case 'pumpkin':
+      return '<ellipse cx="36" cy="68" rx="14" ry="17" fill="#fb8c00"/><ellipse cx="64" cy="68" rx="14" ry="17" fill="#fb8c00"/><ellipse cx="50" cy="68" rx="14" ry="19" fill="#ffa726"/>'
+        + '<path d="M43 52 Q39 68 43 85" stroke="#e65100" stroke-width="2" fill="none" opacity=".45"/><path d="M57 52 Q61 68 57 85" stroke="#e65100" stroke-width="2" fill="none" opacity=".45"/>'
+        + '<rect x="47" y="44" width="6" height="11" rx="2" fill="#5d4037"/>';
+  }
+  return '';
+}
+function plantSVG(k, p){
+  let body;
+  if (p >= 1){
+    body = k === 'carrot' ? fruit(k) + foliage(k)
+         : k === 'cabbage' ? fruit(k)
+         : foliage(k) + fruit(k);
+  } else if (p < 0.08){
+    body = '<ellipse cx="50" cy="' + G + '" rx="6" ry="4" fill="#6d4c41"/>';
+  } else {
+    const s = 0.25 + 0.75 * p;
+    body = '<g transform="translate(50 ' + G + ') scale(' + s.toFixed(3) + ') translate(-50 -' + G + ')">' + foliage(k) + '</g>';
+  }
+  return '<svg viewBox="0 0 100 100" aria-hidden="true">' + body + '</svg>';
+}
+
+/* ---------- สถานะเกม ---------- */
+const fresh = () => ({
+  coins: 15, xp: 0, level: 1, seed: 'carrot', mute: false,
+  up: { water: 0, growth: 0 },
+  plots: Array.from({ length: 9 }, (_, i) => ({ u: i < 4, crop: null, p: 0, w: 0 })),
+  t: Date.now()
+});
+function load(){
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.plots) && s.plots.length === 9 && s.up){
+      s.plots.forEach(pl => { if (pl.crop && !C[pl.crop]) { pl.crop = null; pl.p = 0; pl.w = 0; } });
+      if (!C[s.seed]) s.seed = 'carrot';
+      return s;
+    }
+  } catch (e) {}
+  return null;
+}
+function save(){ S.t = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+let S = load() || fresh();
+
+const maxWater = () => WATER_BASE * (1 + 0.5 * S.up.water);
+const growMul  = () => 1 + 0.25 * S.up.growth;
+const plotCost = () => 40 * (S.plots.filter(p => p.u).length - 3);
+const xpNeed   = () => S.level * 30;
+const upCost   = k => (k === 'water' ? 60 : 80) * Math.pow(2, S.up[k]);
+
+/* ---------- เสียง ---------- */
+let AC = null;
+function beep(f, d = .1, type = 'sine', v = .07, delay = 0){
+  if (S.mute) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(v, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + d);
+  } catch (e) {}
+}
+const sfx = {
+  plant:   () => beep(330, .12, 'triangle'),
+  water:   () => { beep(520, .08); beep(420, .1, 'sine', .05, .07); },
+  harvest: () => { beep(523, .1, 'square', .04); beep(659, .1, 'square', .04, .08); beep(784, .15, 'square', .04, .16); },
+  buy:     () => { beep(440, .1, 'triangle'); beep(660, .15, 'triangle', .07, .1); },
+  level:   () => { [523, 659, 784, 1047].forEach((f, i) => beep(f, .15, 'triangle', .07, i * .1)); },
+  err:     () => beep(140, .18, 'sawtooth', .04)
+};
+
+/* ---------- UI ---------- */
+const toastEl = $('#toast'); let toastT;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+const grid = $('#grid'), pe = [];
+S.plots.forEach((_, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'plot'; b.dataset.i = i;
+  b.setAttribute('aria-label', 'แปลงที่ ' + (i + 1));
+  b.innerHTML = '<div class="plantbox"></div><span class="badge"></span>'
+    + '<div class="lockbox"><div class="padlock"></div><span class="price"></span></div>'
+    + '<div class="bars"><i class="pb"><b></b></i><i class="wb"><b></b></i></div>';
+  grid.appendChild(b);
+  pe.push({
+    el: b, box: b.querySelector('.plantbox'), price: b.querySelector('.price'),
+    pb: b.querySelector('.pb b'), wb: b.querySelector('.wb b'), key: ''
+  });
+});
+
+const seedsEl = $('#seeds');
+ORDER.forEach(k => {
+  const c = C[k], b = document.createElement('button');
+  b.type = 'button'; b.className = 'seed'; b.dataset.k = k;
+  b.innerHTML = plantSVG(k, 1) + '<b>' + c.name + '</b><span class="cost">ซื้อ ' + c.cost + '</span><span>ขาย ' + c.sell + '</span><span class="tm"></span>';
+  seedsEl.appendChild(b);
+});
+
+function floatText(i, txt, color){
+  const f = document.createElement('span');
+  f.className = 'float'; f.textContent = txt; if (color) f.style.color = color;
+  pe[i].el.appendChild(f); setTimeout(() => f.remove(), 950);
+}
+function drops(i){
+  for (let n = 0; n < 4; n++){
+    const d = document.createElement('span');
+    d.className = 'drop'; d.style.left = (22 + n * 17) + '%'; d.style.animationDelay = (n * 60) + 'ms';
+    pe[i].el.appendChild(d); setTimeout(() => d.remove(), 900);
+  }
+}
+
+function addXP(n){
+  S.xp += n;
+  while (S.xp >= xpNeed()){
+    S.xp -= xpNeed(); S.level++;
+    const un = ORDER.find(k => C[k].lvl === S.level);
+    toast('เลเวลอัป! Lv ' + S.level + (un ? ' • ปลดล็อก' + C[un].name : ''));
+    sfx.level();
+  }
+}
+
+/* ---------- การเล่น ---------- */
+function plant(i){
+  const pl = S.plots[i], c = C[S.seed];
+  if (S.level < c.lvl){ toast('ต้องถึง Lv ' + c.lvl + ' ก่อน'); sfx.err(); return; }
+  if (S.coins < c.cost){ toast('เหรียญไม่พอ ต้องใช้ ' + c.cost); sfx.err(); return; }
+  S.coins -= c.cost; pl.crop = S.seed; pl.p = 0; pl.w = 0;
+  floatText(i, '-' + c.cost, '#ffe082'); sfx.plant();
+}
+function water(i){
+  const pl = S.plots[i];
+  pl.w = maxWater(); drops(i); sfx.water();
+}
+function harvest(i){
+  const pl = S.plots[i], c = C[pl.crop];
+  S.coins += c.sell; floatText(i, '+' + c.sell, '#fff59d');
+  pl.crop = null; pl.p = 0; pl.w = 0;
+  sfx.harvest(); addXP(Math.round(c.sell / 3));
+}
+function act(i){
+  const pl = S.plots[i];
+  if (!pl.u){
+    const cost = plotCost();
+    if (S.coins >= cost){ S.coins -= cost; pl.u = true; sfx.buy(); toast('ปลดล็อกแปลงใหม่แล้ว!'); }
+    else { toast('เหรียญไม่พอ ต้องใช้ ' + cost); sfx.err(); }
+  } else if (!pl.crop) plant(i);
+  else if (pl.p >= 1) harvest(i);
+  else water(i);
+  update(); save();
+}
+
+function tick(dt){
+  const gm = growMul();
+  for (const pl of S.plots){
+    if (!pl.u || !pl.crop) continue;
+    if (pl.p < 1 && pl.w > 0){
+      const wet = Math.min(dt, pl.w);
+      pl.p = Math.min(1, pl.p + wet * gm / C[pl.crop].time);
+    }
+    pl.w = Math.max(0, pl.w - dt);
+  }
+  if (S.coins < 5 && S.plots.every(p => !p.crop)){
+    S.coins += 5; toast('มีคนใจดีแบ่งเหรียญให้ +5');
+  }
+}
+
+function update(){
+  $('#coins').textContent = Math.floor(S.coins);
+  $('#lvl').textContent = S.level;
+  $('#xpbar').style.width = (S.xp / xpNeed() * 100) + '%';
+  $('#mute').textContent = S.mute ? 'เสียง: ปิด' : 'เสียง: เปิด';
+  const mw = maxWater();
+
+  S.plots.forEach((pl, i) => {
+    const e = pe[i], grown = !!pl.crop && pl.p >= 1, wet = pl.w > 0;
+    const stage = pl.crop ? (grown ? 'R' : Math.floor(pl.p * 20)) : '';
+    const key = [pl.u, pl.crop, stage, wet].join('|');
+    if (key !== e.key){
+      e.key = key;
+      e.box.innerHTML = pl.u && pl.crop ? plantSVG(pl.crop, pl.p) : '';
+      const c = e.el.classList;
+      c.toggle('locked', !pl.u);
+      c.toggle('empty', pl.u && !pl.crop);
+      c.toggle('growing', !!pl.crop && !grown);
+      c.toggle('ready', grown);
+      c.toggle('wet', !!pl.crop && wet);
+      c.toggle('thirsty', !!pl.crop && !grown && !wet);
+    }
+    if (!pl.u) e.price.textContent = 'ปลดล็อก ' + plotCost();
+    else if (pl.crop){
+      e.pb.style.width = (Math.min(1, pl.p) * 100) + '%';
+      e.wb.style.width = (Math.min(1, pl.w / mw) * 100) + '%';
+    }
+  });
+
+  seedsEl.querySelectorAll('.seed').forEach(b => {
+    const k = b.dataset.k, c = C[k], locked = S.level < c.lvl;
+    b.classList.toggle('active', S.seed === k);
+    b.classList.toggle('locked', locked);
+    b.classList.toggle('poor', !locked && S.coins < c.cost);
+    b.querySelector('.tm').textContent = locked ? 'ปลดล็อก Lv.' + c.lvl : 'โต ~' + c.time + ' วิ';
+  });
+
+  const uw = $('#upWater'), ug = $('#upGrow');
+  const maxedW = S.up.water >= MAX_UP, maxedG = S.up.growth >= MAX_UP;
+  uw.innerHTML = 'ถังน้ำใหญ่ขึ้น <small>Lv ' + S.up.water + '/' + MAX_UP + ' • น้ำอยู่ได้ ' + Math.round(mw) + ' วิ</small><small>' + (maxedW ? 'สูงสุดแล้ว' : 'ราคา ' + upCost('water')) + '</small>';
+  ug.innerHTML = 'ปุ๋ยเร่งโต <small>Lv ' + S.up.growth + '/' + MAX_UP + ' • โตเร็ว x' + growMul().toFixed(2) + '</small><small>' + (maxedG ? 'สูงสุดแล้ว' : 'ราคา ' + upCost('growth')) + '</small>';
+  uw.classList.toggle('off', maxedW || S.coins < upCost('water'));
+  ug.classList.toggle('off', maxedG || S.coins < upCost('growth'));
+}
+
+/* ---------- เหตุการณ์ ---------- */
+grid.addEventListener('click', e => {
+  const b = e.target.closest('.plot'); if (b) act(+b.dataset.i);
+});
+seedsEl.addEventListener('click', e => {
+  const b = e.target.closest('.seed'); if (!b) return;
+  const k = b.dataset.k;
+  if (S.level < C[k].lvl){ toast('ปลดล็อกที่ Lv ' + C[k].lvl); sfx.err(); return; }
+  S.seed = k; sfx.plant(); update(); save();
+});
+$('#waterAll').addEventListener('click', () => {
+  const mw = maxWater(); let n = 0, broke = false;
+  S.plots.forEach((pl, i) => {
+    if (pl.u && pl.crop && pl.p < 1 && pl.w < mw * 0.5){
+      if (S.coins >= 1){ S.coins -= 1; pl.w = mw; drops(i); n++; } else broke = true;
+    }
+  });
+  if (n){ sfx.water(); toast('รดน้ำ ' + n + ' แปลง'); }
+  else { toast(broke ? 'เหรียญไม่พอ' : 'ไม่มีแปลงที่ต้องรดน้ำ'); sfx.err(); }
+  update(); save();
+});
+$('#harvestAll').addEventListener('click', () => {
+  let n = 0;
+  S.plots.forEach((pl, i) => { if (pl.u && pl.crop && pl.p >= 1){ harvest(i); n++; } });
+  if (!n){ toast('ยังไม่มีผักที่สุก'); sfx.err(); }
+  update(); save();
+});
+function buyUp(k){
+  if (S.up[k] >= MAX_UP){ toast('อัปเกรดสูงสุดแล้ว'); sfx.err(); return; }
+  const c = upCost(k);
+  if (S.coins < c){ toast('เหรียญไม่พอ ต้องใช้ ' + c); sfx.err(); return; }
+  S.coins -= c; S.up[k]++; sfx.buy(); toast('อัปเกรดสำเร็จ!'); update(); save();
+}
+$('#upWater').addEventListener('click', () => buyUp('water'));
+$('#upGrow').addEventListener('click', () => buyUp('growth'));
+$('#mute').addEventListener('click', () => { S.mute = !S.mute; update(); save(); });
+$('#reset').addEventListener('click', () => {
+  if (confirm('เริ่มเกมใหม่? ข้อมูลที่เซฟไว้จะหายทั้งหมด')){
+    S = fresh(); pe.forEach(e => e.key = ''); update(); save(); toast('เริ่มเกมใหม่แล้ว');
+  }
+});
+
+/* ---------- เริ่มเกม ---------- */
+const away = Math.min((Date.now() - (S.t || Date.now())) / 1000, 1800);
+if (away > 1) tick(away);
+update();
+if (away > 30) toast('ระหว่างที่ไม่อยู่ ผักเติบโตต่อไปแล้ว');
+
+let last = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = Math.min((now - last) / 1000, 1800);
+  last = now; tick(dt); update();
+}, 100);
+setInterval(save, 3000);
+window.addEventListener('beforeunload', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+})();
+</script>
+</body>
+</html>
